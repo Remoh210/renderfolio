@@ -143,9 +143,10 @@ async function init() {
   }
 
   try {
+    const shaderVersion = '1.0.1';
     const [vertShaderSrc, fragShaderSrc] = await Promise.all([
-      loadText('../shaders/vertex.glsl'),
-      loadText('../shaders/fragment.glsl'),
+      loadText(`../shaders/vertex.glsl?v=${shaderVersion}`),
+      loadText(`../shaders/fragment.glsl?v=${shaderVersion}`),
     ]);
 
     const program = createProgram(vertShaderSrc, fragShaderSrc);
