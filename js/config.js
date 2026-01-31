@@ -1,5 +1,5 @@
-export const APP_VERSION = '1.0.5';
-export const SHADER_VERSION = '1.0.5';
+export const APP_VERSION = '1.0.6';
+export const SHADER_VERSION = '1.0.6';
 
 export const SETTINGS = {
   gridSize: 120,

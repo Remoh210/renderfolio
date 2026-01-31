@@ -1,26 +1,10 @@
-import Renderer from './render.js?v=1.0.5';
-import { APP_VERSION, SHADER_VERSION, SETTINGS, MODES } from './config.js?v=1.0.5';
+import Renderer from './render.js?v=1.0.6';
+import OceanScene from './scenes/ocean.js?v=1.0.6';
+import { APP_VERSION, SHADER_VERSION, SETTINGS, MODES } from './config.js?v=1.0.6';
 
 const canvas = document.getElementById('glCanvas');
-const renderer = new Renderer(canvas, {
-  shaderVersion: SHADER_VERSION,
-  gridSize: SETTINGS.gridSize,
-  gridSpacing: SETTINGS.gridSpacing,
-  waveHeight: SETTINGS.waveHeight,
-  waveScale: SETTINGS.waveScale,
-  waveSpeed: SETTINGS.waveSpeed,
-  waveChop: SETTINGS.waveChop,
-  fbmStrength: SETTINGS.fbmStrength,
-  fbmOctaves: SETTINGS.fbmOctaves,
-  fbmLacunarity: SETTINGS.fbmLacunarity,
-  fbmGain: SETTINGS.fbmGain,
-  mode: SETTINGS.mode,
-  cameraEye: SETTINGS.cameraEye,
-  cameraTarget: SETTINGS.cameraTarget,
-  cameraUp: SETTINGS.cameraUp,
-});
-
-renderer.init();
+const renderer = new Renderer(canvas);
+const scene = new OceanScene(SETTINGS);
 
 const ui = document.getElementById('ui');
 ui.innerHTML = `
@@ -35,7 +19,7 @@ const modesContainer = ui.querySelector('.ui-modes');
 const modeButtons = new Map();
 
 function setMode(modeId) {
-  renderer.setMode(modeId);
+  scene.setMode(modeId);
   modeButtons.forEach((button, id) => {
     button.classList.toggle('is-active', id === modeId);
   });
@@ -87,7 +71,7 @@ sliderDefs.forEach((def) => {
   input.addEventListener('input', () => {
     const numeric = def.integer ? parseInt(input.value, 10) : Number(input.value);
     value.textContent = def.integer ? String(numeric) : numeric.toFixed(2);
-    renderer.setParams({ [def.id]: numeric });
+    scene.setParams({ [def.id]: numeric });
   });
 
   row.appendChild(title);
@@ -110,3 +94,16 @@ window.addEventListener('keydown', (event) => {
     setMode(keyToMode.get(key));
   }
 });
+
+(async () => {
+  const vertexUrl = new URL(`../shaders/vertex.glsl?v=${SHADER_VERSION}`, import.meta.url);
+  const fragmentUrl = new URL(`../shaders/fragment.glsl?v=${SHADER_VERSION}`, import.meta.url);
+
+  await renderer.init({
+    vertexUrl,
+    fragmentUrl,
+    mesh: scene.getMesh(),
+  });
+
+  renderer.start((frame) => scene.getFrame(frame));
+})();
