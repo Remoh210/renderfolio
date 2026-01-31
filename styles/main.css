@@ -26,6 +26,8 @@ canvas {
   font-family: "Space Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   letter-spacing: 0.02em;
   backdrop-filter: blur(6px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
 }
 
 .ui-title {

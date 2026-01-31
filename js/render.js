@@ -4,12 +4,17 @@ export default class Renderer {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.gl = canvas.getContext('webgl');
-    this.shaderVersion = options.shaderVersion || '1.0.3';
+    this.shaderVersion = options.shaderVersion || '1.0.5';
     this.gridSize = options.gridSize || 120;
     this.gridSpacing = options.gridSpacing || 0.16;
     this.waveHeight = options.waveHeight || 0.6;
     this.waveScale = options.waveScale || 0.9;
     this.waveSpeed = options.waveSpeed || 1.0;
+    this.waveChop = options.waveChop || 0.7;
+    this.fbmStrength = options.fbmStrength || 0.15;
+    this.fbmOctaves = options.fbmOctaves || 5;
+    this.fbmLacunarity = options.fbmLacunarity || 2.0;
+    this.fbmGain = options.fbmGain || 0.5;
     this.mode = typeof options.mode === 'number' ? options.mode : 2;
     this.cameraEye = options.cameraEye || [0, 6, 12];
     this.cameraTarget = options.cameraTarget || [0, 0, 0];
@@ -63,6 +68,12 @@ export default class Renderer {
       this.uTime = gl.getUniformLocation(this.program, 'u_time');
       this.uWaveHeight = gl.getUniformLocation(this.program, 'u_waveHeight');
       this.uWaveScale = gl.getUniformLocation(this.program, 'u_waveScale');
+      this.uWaveSpeed = gl.getUniformLocation(this.program, 'u_waveSpeed');
+      this.uWaveChop = gl.getUniformLocation(this.program, 'u_waveChop');
+      this.uFbmStrength = gl.getUniformLocation(this.program, 'u_fbmStrength');
+      this.uFbmOctaves = gl.getUniformLocation(this.program, 'u_fbmOctaves');
+      this.uFbmLacunarity = gl.getUniformLocation(this.program, 'u_fbmLacunarity');
+      this.uFbmGain = gl.getUniformLocation(this.program, 'u_fbmGain');
       this.uMode = gl.getUniformLocation(this.program, 'u_mode');
 
       gl.enable(gl.DEPTH_TEST);
@@ -105,9 +116,15 @@ export default class Renderer {
 
     gl.uniformMatrix4fv(this.uProjection, false, this.projection);
     gl.uniformMatrix4fv(this.uView, false, this.view);
-    gl.uniform1f(this.uTime, time * 0.001 * this.waveSpeed);
+    gl.uniform1f(this.uTime, time * 0.001);
     gl.uniform1f(this.uWaveHeight, this.waveHeight);
     gl.uniform1f(this.uWaveScale, this.waveScale);
+    gl.uniform1f(this.uWaveSpeed, this.waveSpeed);
+    gl.uniform1f(this.uWaveChop, this.waveChop);
+    gl.uniform1f(this.uFbmStrength, this.fbmStrength);
+    gl.uniform1i(this.uFbmOctaves, this.fbmOctaves);
+    gl.uniform1f(this.uFbmLacunarity, this.fbmLacunarity);
+    gl.uniform1f(this.uFbmGain, this.fbmGain);
     gl.uniform1i(this.uMode, this.mode);
 
     if (this.mode === 2) {
@@ -224,6 +241,21 @@ export default class Renderer {
     }
     if (typeof params.waveSpeed === 'number') {
       this.waveSpeed = params.waveSpeed;
+    }
+    if (typeof params.waveChop === 'number') {
+      this.waveChop = params.waveChop;
+    }
+    if (typeof params.fbmStrength === 'number') {
+      this.fbmStrength = params.fbmStrength;
+    }
+    if (typeof params.fbmOctaves === 'number') {
+      this.fbmOctaves = params.fbmOctaves;
+    }
+    if (typeof params.fbmLacunarity === 'number') {
+      this.fbmLacunarity = params.fbmLacunarity;
+    }
+    if (typeof params.fbmGain === 'number') {
+      this.fbmGain = params.fbmGain;
     }
   }
 }

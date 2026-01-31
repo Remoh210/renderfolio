@@ -1,5 +1,5 @@
-import Renderer from './render.js?v=1.0.3';
-import { APP_VERSION, SHADER_VERSION, SETTINGS, MODES } from './config.js?v=1.0.3';
+import Renderer from './render.js?v=1.0.5';
+import { APP_VERSION, SHADER_VERSION, SETTINGS, MODES } from './config.js?v=1.0.5';
 
 const canvas = document.getElementById('glCanvas');
 const renderer = new Renderer(canvas, {
@@ -9,6 +9,11 @@ const renderer = new Renderer(canvas, {
   waveHeight: SETTINGS.waveHeight,
   waveScale: SETTINGS.waveScale,
   waveSpeed: SETTINGS.waveSpeed,
+  waveChop: SETTINGS.waveChop,
+  fbmStrength: SETTINGS.fbmStrength,
+  fbmOctaves: SETTINGS.fbmOctaves,
+  fbmLacunarity: SETTINGS.fbmLacunarity,
+  fbmGain: SETTINGS.fbmGain,
   mode: SETTINGS.mode,
   cameraEye: SETTINGS.cameraEye,
   cameraTarget: SETTINGS.cameraTarget,
@@ -51,8 +56,13 @@ setMode(SETTINGS.mode);
 const sliderContainer = ui.querySelector('.ui-sliders');
 const sliderDefs = [
   { id: 'waveHeight', label: 'Wave Height', min: 0, max: 1.5, step: 0.01, value: SETTINGS.waveHeight },
-  { id: 'waveScale', label: 'Wave Scale', min: 0.2, max: 2.0, step: 0.01, value: SETTINGS.waveScale },
+  { id: 'waveScale', label: 'Wave Scale', min: 0.2, max: 1.6, step: 0.01, value: SETTINGS.waveScale },
   { id: 'waveSpeed', label: 'Wave Speed', min: 0.2, max: 2.5, step: 0.01, value: SETTINGS.waveSpeed },
+  { id: 'waveChop', label: 'Wave Chop', min: 0.0, max: 1.4, step: 0.01, value: SETTINGS.waveChop },
+  { id: 'fbmStrength', label: 'FBM Strength', min: 0.0, max: 0.4, step: 0.01, value: SETTINGS.fbmStrength },
+  { id: 'fbmOctaves', label: 'FBM Octaves', min: 1, max: 6, step: 1, value: SETTINGS.fbmOctaves, integer: true },
+  { id: 'fbmLacunarity', label: 'FBM Lacunarity', min: 1.5, max: 3.5, step: 0.01, value: SETTINGS.fbmLacunarity },
+  { id: 'fbmGain', label: 'FBM Gain', min: 0.2, max: 0.8, step: 0.01, value: SETTINGS.fbmGain },
 ];
 
 sliderDefs.forEach((def) => {
@@ -72,11 +82,11 @@ sliderDefs.forEach((def) => {
 
   const value = document.createElement('span');
   value.className = 'ui-value';
-  value.textContent = Number(def.value).toFixed(2);
+  value.textContent = def.integer ? String(def.value) : Number(def.value).toFixed(2);
 
   input.addEventListener('input', () => {
-    const numeric = Number(input.value);
-    value.textContent = numeric.toFixed(2);
+    const numeric = def.integer ? parseInt(input.value, 10) : Number(input.value);
+    value.textContent = def.integer ? String(numeric) : numeric.toFixed(2);
     renderer.setParams({ [def.id]: numeric });
   });
 
