@@ -11,3 +11,101 @@ canvas {
   width: 100%;
   height: 100%;
 }
+
+.ui {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  min-width: 220px;
+  padding: 14px 16px;
+  color: #e6f3ff;
+  background: rgba(4, 10, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-family: "Space Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+}
+
+.ui-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.ui-version {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.ui-hint {
+  font-size: 11px;
+  opacity: 0.7;
+  margin: 10px 0 12px;
+}
+
+.ui-modes {
+  display: grid;
+  gap: 6px;
+}
+
+.ui-modes button {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ui-modes button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.ui-modes button.is-active {
+  color: #06121f;
+  background: #e6f3ff;
+  border-color: transparent;
+}
+
+.ui-sliders {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.ui-slider {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.ui-label {
+  white-space: nowrap;
+}
+
+.ui-value {
+  min-width: 44px;
+  text-align: right;
+  opacity: 0.8;
+}
+
+.ui-slider input[type="range"] {
+  width: 100%;
+  accent-color: #7ed1ff;
+}
+
+@media (max-width: 720px) {
+  .ui {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}

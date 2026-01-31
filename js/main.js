@@ -1,204 +1,102 @@
+import Renderer from './render.js?v=1.0.3';
+import { APP_VERSION, SHADER_VERSION, SETTINGS, MODES } from './config.js?v=1.0.3';
+
 const canvas = document.getElementById('glCanvas');
-const gl = canvas.getContext('webgl');
+const renderer = new Renderer(canvas, {
+  shaderVersion: SHADER_VERSION,
+  gridSize: SETTINGS.gridSize,
+  gridSpacing: SETTINGS.gridSpacing,
+  waveHeight: SETTINGS.waveHeight,
+  waveScale: SETTINGS.waveScale,
+  waveSpeed: SETTINGS.waveSpeed,
+  mode: SETTINGS.mode,
+  cameraEye: SETTINGS.cameraEye,
+  cameraTarget: SETTINGS.cameraTarget,
+  cameraUp: SETTINGS.cameraUp,
+});
 
-if (!gl) {
-  console.error('WebGL not supported in this browser.');
+renderer.init();
+
+const ui = document.getElementById('ui');
+ui.innerHTML = `
+  <div class="ui-title">Debug View</div>
+  <div class="ui-version">v${APP_VERSION}</div>
+  <div class="ui-hint">Keys: 1-4 or B N W H</div>
+  <div class="ui-modes"></div>
+  <div class="ui-sliders"></div>
+`;
+
+const modesContainer = ui.querySelector('.ui-modes');
+const modeButtons = new Map();
+
+function setMode(modeId) {
+  renderer.setMode(modeId);
+  modeButtons.forEach((button, id) => {
+    button.classList.toggle('is-active', id === modeId);
+  });
 }
 
-let dpr = window.devicePixelRatio || 1;
+MODES.forEach((mode) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = `${mode.keys[0].toUpperCase()} ${mode.name}`;
+  button.dataset.mode = String(mode.id);
+  button.addEventListener('click', () => setMode(mode.id));
+  modesContainer.appendChild(button);
+  modeButtons.set(mode.id, button);
+});
 
-function resizeCanvasToDisplaySize() {
-  dpr = window.devicePixelRatio || 1;
-  const width = Math.floor(window.innerWidth * dpr);
-  const height = Math.floor(window.innerHeight * dpr);
+setMode(SETTINGS.mode);
 
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-}
+const sliderContainer = ui.querySelector('.ui-sliders');
+const sliderDefs = [
+  { id: 'waveHeight', label: 'Wave Height', min: 0, max: 1.5, step: 0.01, value: SETTINGS.waveHeight },
+  { id: 'waveScale', label: 'Wave Scale', min: 0.2, max: 2.0, step: 0.01, value: SETTINGS.waveScale },
+  { id: 'waveSpeed', label: 'Wave Speed', min: 0.2, max: 2.5, step: 0.01, value: SETTINGS.waveSpeed },
+];
 
-function compileShader(source, type) {
-  const shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
+sliderDefs.forEach((def) => {
+  const row = document.createElement('label');
+  row.className = 'ui-slider';
 
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const log = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(`Shader compile failed: ${log}`);
-  }
+  const title = document.createElement('span');
+  title.className = 'ui-label';
+  title.textContent = def.label;
 
-  return shader;
-}
+  const input = document.createElement('input');
+  input.type = 'range';
+  input.min = def.min;
+  input.max = def.max;
+  input.step = def.step;
+  input.value = def.value;
 
-function createProgram(vertexSource, fragmentSource) {
-  const program = gl.createProgram();
-  const vertexShader = compileShader(vertexSource, gl.VERTEX_SHADER);
-  const fragmentShader = compileShader(fragmentSource, gl.FRAGMENT_SHADER);
+  const value = document.createElement('span');
+  value.className = 'ui-value';
+  value.textContent = Number(def.value).toFixed(2);
 
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
+  input.addEventListener('input', () => {
+    const numeric = Number(input.value);
+    value.textContent = numeric.toFixed(2);
+    renderer.setParams({ [def.id]: numeric });
+  });
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const log = gl.getProgramInfoLog(program);
-    gl.deleteProgram(program);
-    throw new Error(`Program link failed: ${log}`);
-  }
+  row.appendChild(title);
+  row.appendChild(input);
+  row.appendChild(value);
+  sliderContainer.appendChild(row);
+});
 
-  return program;
-}
+const keyToMode = new Map();
+MODES.forEach((mode) => {
+  mode.keys.forEach((key) => keyToMode.set(key, mode.id));
+});
 
-async function loadText(relativePath) {
-  const url = new URL(relativePath, import.meta.url);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to load ${url}: ${response.status}`);
-  }
-  return response.text();
-}
-
-function createGrid(rows, cols, spacing) {
-  const vertices = [];
-  const indices = [];
-
-  const width = (cols - 1) * spacing;
-  const depth = (rows - 1) * spacing;
-  const xOffset = width / 2;
-  const zOffset = depth / 2;
-
-  for (let z = 0; z < rows; z += 1) {
-    for (let x = 0; x < cols; x += 1) {
-      vertices.push(x * spacing - xOffset, 0, z * spacing - zOffset);
-    }
-  }
-
-  const index = (x, z) => z * cols + x;
-
-  for (let z = 0; z < rows; z += 1) {
-    for (let x = 0; x < cols - 1; x += 1) {
-      indices.push(index(x, z), index(x + 1, z));
-    }
-  }
-
-  for (let x = 0; x < cols; x += 1) {
-    for (let z = 0; z < rows - 1; z += 1) {
-      indices.push(index(x, z), index(x, z + 1));
-    }
-  }
-
-  return {
-    vertices: new Float32Array(vertices),
-    indices: new Uint16Array(indices),
-  };
-}
-
-function mat4Perspective(fovY, aspect, near, far) {
-  const f = 1 / Math.tan(fovY / 2);
-  const nf = 1 / (near - far);
-  return [
-    f / aspect, 0, 0, 0,
-    0, f, 0, 0,
-    0, 0, (far + near) * nf, -1,
-    0, 0, (2 * far * near) * nf, 0,
-  ];
-}
-
-function mat4LookAt(eye, target, up) {
-  const zx = eye[0] - target[0];
-  const zy = eye[1] - target[1];
-  const zz = eye[2] - target[2];
-  let zLen = Math.hypot(zx, zy, zz);
-  const z0 = zx / zLen;
-  const z1 = zy / zLen;
-  const z2 = zz / zLen;
-
-  const xx = up[1] * z2 - up[2] * z1;
-  const xy = up[2] * z0 - up[0] * z2;
-  const xz = up[0] * z1 - up[1] * z0;
-  let xLen = Math.hypot(xx, xy, xz);
-  const x0 = xx / xLen;
-  const x1 = xy / xLen;
-  const x2 = xz / xLen;
-
-  const y0 = z1 * x2 - z2 * x1;
-  const y1 = z2 * x0 - z0 * x2;
-  const y2 = z0 * x1 - z1 * x0;
-
-  return [
-    x0, y0, z0, 0,
-    x1, y1, z1, 0,
-    x2, y2, z2, 0,
-    -(x0 * eye[0] + x1 * eye[1] + x2 * eye[2]),
-    -(y0 * eye[0] + y1 * eye[1] + y2 * eye[2]),
-    -(z0 * eye[0] + z1 * eye[1] + z2 * eye[2]),
-    1,
-  ];
-}
-
-async function init() {
-  if (!gl) {
+window.addEventListener('keydown', (event) => {
+  if (event.target && event.target.tagName === 'INPUT') {
     return;
   }
-
-  try {
-    const shaderVersion = '1.0.1';
-    const [vertShaderSrc, fragShaderSrc] = await Promise.all([
-      loadText(`../shaders/vertex.glsl?v=${shaderVersion}`),
-      loadText(`../shaders/fragment.glsl?v=${shaderVersion}`),
-    ]);
-
-    const program = createProgram(vertShaderSrc, fragShaderSrc);
-    gl.useProgram(program);
-
-    const grid = createGrid(120, 120, 0.16);
-
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, grid.vertices, gl.STATIC_DRAW);
-
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, grid.indices, gl.STATIC_DRAW);
-
-    const posAttrib = gl.getAttribLocation(program, 'a_position');
-    gl.enableVertexAttribArray(posAttrib);
-    gl.vertexAttribPointer(posAttrib, 3, gl.FLOAT, false, 0, 0);
-
-    const uProjection = gl.getUniformLocation(program, 'u_projection');
-    const uView = gl.getUniformLocation(program, 'u_view');
-    const uTime = gl.getUniformLocation(program, 'u_time');
-    const uWaveHeight = gl.getUniformLocation(program, 'u_waveHeight');
-    const uWaveScale = gl.getUniformLocation(program, 'u_waveScale');
-
-    gl.enable(gl.DEPTH_TEST);
-    gl.clearColor(0, 0, 0, 1);
-
-    function render(time) {
-      resizeCanvasToDisplaySize();
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-      const aspect = canvas.width / canvas.height;
-      const projection = mat4Perspective(Math.PI / 3, aspect, 0.1, 100);
-      const view = mat4LookAt([0, 6, 12], [0, 0, 0], [0, 1, 0]);
-
-      gl.uniformMatrix4fv(uProjection, false, projection);
-      gl.uniformMatrix4fv(uView, false, view);
-      gl.uniform1f(uTime, time * 0.001);
-      gl.uniform1f(uWaveHeight, 0.6);
-      gl.uniform1f(uWaveScale, 0.9);
-
-      gl.drawElements(gl.LINES, grid.indices.length, gl.UNSIGNED_SHORT, 0);
-      requestAnimationFrame(render);
-    }
-
-    resizeCanvasToDisplaySize();
-    requestAnimationFrame(render);
-  } catch (err) {
-    console.error(err);
+  const key = event.key.toLowerCase();
+  if (keyToMode.has(key)) {
+    setMode(keyToMode.get(key));
   }
-}
-
-init();
+});
