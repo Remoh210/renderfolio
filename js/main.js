@@ -7,6 +7,7 @@ const renderer = new Renderer(canvas);
 const scene = new OceanScene(SETTINGS);
 
 const ui = document.getElementById('ui');
+const modePanel = document.getElementById('modePanel');
 ui.innerHTML = `
   <div class="ui-title">Debug View</div>
   <div class="ui-version">v${APP_VERSION}</div>
@@ -17,12 +18,49 @@ ui.innerHTML = `
 
 const modesContainer = ui.querySelector('.ui-modes');
 const modeButtons = new Map();
+let panelTimeout = null;
 
-function setMode(modeId) {
+function renderPanel(modeId, immediate = false) {
+  const mode = MODES.find((item) => item.id === modeId);
+  if (!mode || !mode.panel) {
+    modePanel.classList.remove('is-visible', 'is-exiting');
+    modePanel.innerHTML = '';
+    return;
+  }
+
+  const applyContent = () => {
+    modePanel.innerHTML = `
+      <div class="mode-panel__title">${mode.panel.eyebrow}</div>
+      <div class="mode-panel__headline">${mode.panel.headline}</div>
+      <div class="mode-panel__body">${mode.panel.body}</div>
+    `;
+    modePanel.classList.remove('is-exiting');
+    modePanel.classList.add('is-visible');
+  };
+
+  if (immediate) {
+    applyContent();
+    return;
+  }
+
+  modePanel.classList.remove('is-visible');
+  modePanel.classList.add('is-exiting');
+
+  if (panelTimeout) {
+    clearTimeout(panelTimeout);
+  }
+
+  panelTimeout = setTimeout(() => {
+    applyContent();
+  }, 220);
+}
+
+function setMode(modeId, immediate = false) {
   scene.setMode(modeId);
   modeButtons.forEach((button, id) => {
     button.classList.toggle('is-active', id === modeId);
   });
+  renderPanel(modeId, immediate);
 }
 
 MODES.forEach((mode) => {
@@ -35,7 +73,7 @@ MODES.forEach((mode) => {
   modeButtons.set(mode.id, button);
 });
 
-setMode(SETTINGS.mode);
+setMode(SETTINGS.mode, true);
 
 const sliderContainer = ui.querySelector('.ui-sliders');
 const sliderDefs = [
